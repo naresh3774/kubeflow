@@ -1,0 +1,60 @@
+def generateHostsString(hosts) {
+    hosts.collect { host -> "        ${host}:22" }.join('\n')
+}
+
+pipeline {
+    agent any
+
+    parameters {
+        string(name: 'MANAGER_HOST', defaultValue: 'computeA.omnia.local', description: 'Hostname of Manager node')
+        string(name: 'COMPUTE_HOST', defaultValue: 'computeB.omnia.local', description: 'Hostname of Compute node')
+    }
+
+    stages {
+        stage('Clean Workspace') {
+            steps {
+                sh "rm -rf *"
+            }
+        }
+        stage('SCM Checkout') {
+            steps {
+                git branch: 'main', credentialsId: 'git-credit', url: 'https://github.com/naresh3774/dell.git'
+            }
+        }
+        stage('Create Dynamic Inventory') {
+            steps {
+                script {
+                    def managerhost = params.MANAGER_HOST.split(',')
+                    def computehost = params.COMPUTE_HOST.split(',')
+
+                    def inventory = """
+all:
+  children:
+    manager:
+      hosts:
+${generateHostsString(managerhost)}
+    compute: 
+      hosts:
+${generateHostsString(computehost)}
+"""
+
+                    // Save the inventory to a file
+                    writeFile file: 'kubeflow/ansible/inventory.yml', text: inventory
+
+                    echo "Dynamic inventory file generated at kubeflow/ansible/inventory.yml"
+                }
+            }
+        }
+        stage('Run Ansible Playbook') {
+            steps {
+                ansiblePlaybook(
+                    inventory: 'kubeflow/ansible/inventory.yml',
+                    playbook: 'kubeflow/ansible/kubeflow_install.yml',
+                    become: true,
+                    credentialsId: 'ansible',
+                    disableHostKeyChecking: true
+                )
+            }
+        }
+    }
+}
