@@ -8,11 +8,11 @@ Deploy ***kubeflow 1.6*** on kubernetes cluster using following command
 
 > **NOTE:** During a dry run, Kubeflow will not be deployed; instead, it will provide a preview of the resources that would be deployed.
 ```
-    ansible-playbook -i inventory.yml kubeflow_install.yml --check --diff
+    ansible-playbook -i inventory.yml kubeflow.yml --check --diff
 ```
 * Deploy kubeflow
 ```
-    ansible-playbook -i inventory.yml kubeflow_install.yml
+    ansible-playbook -i inventory.yml kubeflow.yml
 ```
 
 # Default Username and Password:
